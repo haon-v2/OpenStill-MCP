@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: swift build
+      - name: Test
+        run: swift test
+      - name: Universal release build
+        run: |
+          set -euo pipefail
+          swift build -c release --arch arm64 --arch x86_64
+          BIN="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/openstill-mcp"
+          lipo -info "$BIN"
+          "$BIN" --version
+      - name: Talks MCP over stdio
+        run: |
+          set -euo pipefail
+          BIN="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/openstill-mcp"
+          export OPENSTILL_ASSISTANT_DIR="$RUNNER_TEMP/no-openstill"
+          OUT="$(printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+            '{"jsonrpc":"2.0","id":3,"method":"prompts/list"}' | "$BIN")"
+          echo "$OUT" | head -c 2000; echo
+          echo "$OUT" | grep -q '"protocolVersion":"2025-06-18"'
+          echo "$OUT" | grep -q '"name":"set_adjustments"'
+          echo "$OUT" | grep -q '"name":"find_luts"'
