@@ -1,0 +1,74 @@
+# Publishes a new OpenStill MCP version. OpenStill's Settings → AI Assistant → Install downloads the latest release
+# and checks it against SHA256SUMS. Run it from Actions → Release → Run workflow and enter the version (e.g. 1.0.0).
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version, e.g. 1.0.0"
+        required: true
+      notes:
+        description: "What's new"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      VERSION: ${{ inputs.version }}
+      NOTES: ${{ inputs.notes }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Only main can be released
+        if: github.ref != 'refs/heads/main'
+        run: '{ echo "Run the Release workflow on main."; exit 1; }'
+
+      - name: Check the version
+        run: |
+          set -euo pipefail
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Version must look like 1.0.0"; exit 1; }
+          if gh release view "v$VERSION" >/dev/null 2>&1; then echo "v$VERSION was already released"; exit 1; fi
+          grep -q "static let version = \"$VERSION\"" Sources/openstill-mcp/Server.swift || { echo "Set Server.version to $VERSION first"; exit 1; }
+
+      - name: Test
+        run: swift test
+
+      - name: Build (Apple silicon and Intel)
+        run: |
+          set -euo pipefail
+          swift build -c release --arch arm64 --arch x86_64
+          BIN="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/openstill-mcp"
+          mkdir -p dist/openstill-mcp
+          cp "$BIN" dist/openstill-mcp/openstill-mcp
+          cp LICENSE README.md dist/openstill-mcp/
+          codesign --force --sign - --options runtime --timestamp=none dist/openstill-mcp/openstill-mcp
+          lipo -info dist/openstill-mcp/openstill-mcp
+          dist/openstill-mcp/openstill-mcp --version
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          cd dist
+          ZIP="openstill-mcp-$VERSION-macos-universal.zip"
+          ditto -c -k --keepParent openstill-mcp "$ZIP"
+          shasum -a 256 "$ZIP" > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Publish
+        run: |
+          set -euo pipefail
+          BODY="${NOTES:-OpenStill MCP $VERSION}"
+          gh release create "v$VERSION" "dist/openstill-mcp-$VERSION-macos-universal.zip" dist/SHA256SUMS \
+            --title "OpenStill MCP $VERSION" --notes "$BODY" --target "$GITHUB_SHA"
