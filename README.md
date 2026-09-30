@@ -29,6 +29,10 @@ It's optional and not installed with OpenStill. Install it from OpenStill when y
 | `add_mask_layer` | A masked adjustment: linear, radial, or an AI selection of the subject, sky, background or people, computed on your Mac. The answer shows the selected area in red with its coverage and bounds. |
 | `list_mask_layers`, `preview_mask` | See the photo's layers, and where each one applies. |
 | `update_mask_layer`, `delete_mask_layer` | Change a layer's sliders, name, visibility or inversion, move or resize a linear or radial one, or remove it. |
+| `get_edits`, `edit`, `edit_reference` | Read and change **everything** in Develop — curves, HSL, color grading, detail, glow, grain, point color, lens, transform, calibration, retouch, masks, lens blur… — as one edit document with JSON merge patches. |
+| `run_command` | What Develop's buttons do: auto tone, Upright, level horizon, AI noise removal, detail, super resolution, erase, skies, lens blur depth, snapshots, undo. |
+| `copy_edits` | Copy and paste settings from one photo to others, choosing sections, like Copy Settings / Sync. |
+| `list_presets`, `list_skies` | What `apply_preset` and `run_command apply_sky` can use. |
 | `rate`, `flag`, `label`, `add_keywords` | Library metadata for one or several photos. |
 | `export` | Export with your export settings. |
 | `list_luts`, `apply_lut` | Use the LUTs installed in OpenStill. |

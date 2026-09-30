@@ -76,6 +76,15 @@ final class ServerTests: XCTestCase {
         XCTAssertTrue((content.last?["text"] as? String ?? "").contains("coverage"))
     }
 
+    func testFullEditingToolsAreOffered() {
+        let names = Set(Tools.all.map(\.name))
+        for tool in ["edit_reference", "get_edits", "edit", "run_command", "copy_edits", "list_presets", "list_skies"] { XCTAssertTrue(names.contains(tool), tool) }
+        XCTAssertEqual(Tools.all.first { $0.name == "edit" }!.schema["required"] as? [String], ["patch"])
+        XCTAssertEqual(Tools.all.first { $0.name == "copy_edits" }!.schema["required"] as? [String], ["to_photo_ids"])
+        XCTAssertEqual(Set(Tools.commands).count, Tools.commands.count)
+        XCTAssertTrue(Tools.all.first { $0.name == "get_edits" }!.readOnly)
+    }
+
     func testToolCallsAreForwardedAndAnswered() {
         let (server, app, out) = make()
         app.answer = { message in ["type": "response", "id": message["id"]!, "result": ["exposure": 0.3]] }

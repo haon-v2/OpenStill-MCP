@@ -55,6 +55,11 @@ enum Tools {
     ]
     static let maskSliders = ["exposure", "contrast", "highlights", "shadows", "whites", "blacks", "temperature", "tint",
                               "saturation", "clarity", "texture", "dehaze", "sharpness", "noise"]
+    static let commands = ["auto_tone", "previous_settings", "reset", "undo", "redo", "rotate", "flip", "reset_crop", "reset_white_balance", "match_lens_profile",
+                           "auto_straighten", "level_horizon", "upright", "reset_transform", "remove_lut", "apply_sky", "remove_sky", "flip_sky", "lens_blur_depth",
+                           "ai_denoise", "ai_raw_denoise", "ai_detail", "ai_upscale", "ai_erase", "snapshot", "restore_snapshot"]
+    static let copySections = ["develop", "curves", "color", "monochrome", "details", "glow", "vignette", "sunrays", "lut", "enhance", "lens", "geometry",
+                               "retouch", "presence", "grading", "grain", "transform", "profile"]
     static let radius: Schema = ["description": "Radial: a fraction of the photo, or [width, height].",
                                  "anyOf": [["type": "number"], ["type": "array", "items": ["type": "number"], "minItems": 2, "maxItems": 2]]]
 
@@ -144,6 +149,21 @@ enum Tools {
          object(["photo_id": photo, "photo_ids": photos, "folder": string("Destination folder (default: OpenStill's export folder)."),
                  "format": string("File format.", ["jpeg", "png", "tiff", "heif"]),
                  "long_edge": integer("Longest edge in pixels.", minimum: 64, maximum: 20000)]), false),
+        ("edit_reference", "What every part of the edit document means (ranges, neutral values, coordinates) and the commands run_command offers. Read it once before using edit.",
+         object([:]), true),
+        ("get_edits", "The photo's complete edit: every Develop section (basic, curves, HSL, color grading, detail, glow, grain, point color, lens, transform, calibration, effects, masks and layers, retouch…), plus its LUT, sky and snapshots.",
+         object(["photo_id": photo]), true),
+        ("edit", "Change any part of the edit with a JSON merge patch on the get_edits document: give only what changes, nested the same way; null removes a part; lists are replaced whole. Values are limited to their ranges like the sliders. One undo step; the answer lists what changed and anything limited.",
+         object(["photo_id": photo, "patch": ["type": "object", "description": "For example {\"advanced\": {\"glow\": {\"amount\": 40}, \"grain\": {\"amount\": 0.3}}, \"exposure\": 0.2}."] as Schema],
+                required: ["patch"]), false),
+        ("run_command", "Do what a Develop button does and wait for it to finish: auto_tone, previous_settings, reset, undo, redo, rotate, flip, reset_crop, reset_white_balance, match_lens_profile, auto_straighten, level_horizon, upright (auto|level|vertical|full|off), reset_transform, remove_lut, apply_sky (sky id), remove_sky, flip_sky, lens_blur_depth (camera|ai|subject|remove), ai_denoise, ai_raw_denoise, ai_detail, ai_upscale, ai_erase (inside advanced.masks.Erase), snapshot (name), restore_snapshot (id).",
+         object(["photo_id": photo, "name": string("Command name.", commands), "argument": string("For commands that take one (see the list).")], required: ["name"]), false),
+        ("copy_edits", "Copy and paste settings: the chosen sections of one photo's edit onto other photos, like Copy Settings / Sync. Sections: develop, curves, color, monochrome, details, glow, vignette, sunrays, lut, enhance, lens, geometry, retouch, presence, grading, grain, transform, profile (default: all except lens, geometry, retouch, transform). Undo with the library's Undo Batch.",
+         object(["from_photo_id": string("The photo to copy from (default: the open photo)."), "to_photo_ids": photos,
+                 "sections": ["type": "array", "items": ["type": "string", "enum": copySections], "description": "Which sections to paste."] as Schema,
+                 "masks": boolean("Also paste mask layers and masks.")], required: ["to_photo_ids"]), false),
+        ("list_presets", "OpenStill's presets (name, category, description) for apply_preset.", object([:]), true),
+        ("list_skies", "The replacement skies (id, name, category) for run_command apply_sky.", object([:]), true),
         ("list_luts", "The LUTs (color looks) installed in OpenStill, with their creator and license.",
          object(["category": string("Only this category.")]), true),
         ("apply_lut", "Apply a LUT from list_luts.", object(["photo_id": photo, "id": string("LUT id."),
@@ -181,6 +201,7 @@ enum Prompts {
             return """
             Edit the photo open in OpenStill so it looks like this: \(value("style")).
             First call get_photo and preview to see it. Then change a few sliders at a time with set_adjustments, checking with preview after each step. \
+            For curves, HSL, color grading, glow, grain, point color and every other Develop section, call edit_reference once, then get_edits and edit. \
             When only part of the photo needs a change (sky, subject, a corner, the background), use add_mask_layer: look at the red area it returns, \
             fix it with update_mask_layer (move, resize, invert) or delete_mask_layer, and tune its sliders. \
             Finish with preview compare: true to check before against after. Keep it natural unless the style asks otherwise, and explain what you changed.
