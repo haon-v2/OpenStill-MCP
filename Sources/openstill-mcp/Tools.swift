@@ -104,7 +104,7 @@ enum Tools {
         ("add_mask_layer", """
          Add a masked adjustment layer to the open photo: its sliders change only the selected area. Kinds: linear (a gradient) and radial (an ellipse) \
          placed by coordinates, or an on-device AI selection (subject, sky, background, people). Layers are safe to try: each is one undo step and \
-         delete_mask_layer removes it. The answer shows the photo with the selected area in red, plus coverage and bounds, so check it and adjust. \
+         delete_mask_layer removes it. The answer shows the photo with the selected area in red beside the selection alone (white = full effect), plus coverage and bounds, so check it and adjust. \
          AI selections take a few seconds; if nothing is found, no layer is added and the reason is given.
          """,
          object(["photo_id": photo,
@@ -121,7 +121,7 @@ enum Tools {
                 ], required: ["kind"]), false),
         ("list_mask_layers", "The open photo's mask layers: id, name, what they select, whether hidden or inverted, and their slider values.",
          object(["photo_id": photo]), true),
-        ("preview_mask", "See where a mask layer applies: the photo with that layer's selection in red, with its coverage and bounds.",
+        ("preview_mask", "See where a mask layer applies: the photo with that layer's selection in red, beside the selection alone (white = full effect, black = none), with its coverage and bounds.",
          object(["photo_id": photo, "layer_id": string("Layer id (or exact name) from list_mask_layers."),
                  "size": integer("Longest edge in pixels.", minimum: 256, maximum: 2048)], required: ["layer_id"]), true),
         ("update_mask_layer", "Change a mask layer: its sliders (only the ones you name change), name, hidden, invert, or move and resize a linear or radial shape. One undo step; the answer shows the new selection in red.",
