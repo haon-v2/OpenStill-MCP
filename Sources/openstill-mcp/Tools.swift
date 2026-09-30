@@ -55,7 +55,8 @@ enum Tools {
     ]
     static let maskSliders = ["exposure", "contrast", "highlights", "shadows", "whites", "blacks", "temperature", "tint",
                               "saturation", "clarity", "texture", "dehaze", "sharpness", "noise"]
-    static let presets = ["Warm light", "Cool shadows", "Vivid", "Soft portrait", "Monochrome"]
+    static let radius: Schema = ["description": "Radial: a fraction of the photo, or [width, height].",
+                                 "anyOf": [["type": "number"], ["type": "array", "items": ["type": "number"], "minItems": 2, "maxItems": 2]]]
 
     static var sliderValues: Schema {
         var properties: [String: Schema] = [:]
@@ -64,7 +65,7 @@ enum Tools {
     }
     static var maskValues: Schema {
         var properties: [String: Schema] = [:]
-        for name in maskSliders { properties[name] = number(name == "exposure" ? "Stops, −4…4." : name == "noise" ? "0…1." : "−1…1.") }
+        for name in maskSliders { properties[name] = number(name == "exposure" ? "Stops, −4…4 (0 is no change)." : name == "noise" ? "0…1 (0 is no change)." : "−1…1 (0 is no change).") }
         return object(properties)
     }
     static func format(_ value: Double) -> String { value == value.rounded() ? String(Int(value)) : String(value) }
@@ -87,29 +88,52 @@ enum Tools {
         ]), true),
         ("get_photo", "A photo's details and its current slider values.", object(["photo_id": photo]), true),
         ("open_photo", "Open a photo in OpenStill's Develop view.", object(["photo_id": photo]), false),
-        ("preview", "See the photo with its current edits, as a JPEG. The size is limited in OpenStill's Settings.",
-         object(["photo_id": photo, "size": integer("Longest edge in pixels (default 1024).", minimum: 256, maximum: 2048)]), true),
+        ("preview", "See the photo with its current edits, as a JPEG. With compare: true you get the unedited photo (left) beside the edited one (right), to judge a change. The size is limited in OpenStill's Settings.",
+         object(["photo_id": photo, "size": integer("Longest edge in pixels (default 1024).", minimum: 256, maximum: 2048),
+                 "compare": boolean("Show before (left) and after (right) side by side.")]), true),
         ("set_adjustments", "Change Develop sliders. Only the sliders you name change; values outside a slider's range are limited to it. One undo step.",
          object(["photo_id": photo, "values": sliderValues], required: ["values"]), false),
         ("auto_tone", "Apply OpenStill's automatic tone to the photo.", object(["photo_id": photo]), false),
-        ("apply_preset", "Apply one of OpenStill's built-in presets.", object(["photo_id": photo, "name": string("Preset name.", presets)], required: ["name"]), false),
+        ("apply_preset", "Apply one of OpenStill's presets by name, as shown in its Presets panel (for example \"Vivid\" or \"Warm light\").", object(["photo_id": photo, "name": string("Preset name.")], required: ["name"]), false),
         ("crop", "Crop to a rectangle measured from the photo's top-left corner as fractions (0…1), or pass reset: true to remove the crop.",
          object(["photo_id": photo, "x": number("Left edge.", minimum: 0, maximum: 1), "y": number("Top edge.", minimum: 0, maximum: 1),
                  "width": number("At least 0.05.", minimum: 0.05, maximum: 1), "height": number("At least 0.05.", minimum: 0.05, maximum: 1),
                  "reset": boolean("Remove the crop.")]), false),
         ("reset", "Reset every edit on the photo (one undo step).", object(["photo_id": photo]), false),
         ("undo", "Undo the last edit on the photo.", object(["photo_id": photo]), false),
-        ("add_mask_layer", "Add a masked adjustment: a linear or radial shape, or an AI selection (subject, sky, background, people) computed on the Mac.",
+        ("add_mask_layer", """
+         Add a masked adjustment layer to the open photo: its sliders change only the selected area. Kinds: linear (a gradient) and radial (an ellipse) \
+         placed by coordinates, or an on-device AI selection (subject, sky, background, people). Layers are safe to try: each is one undo step and \
+         delete_mask_layer removes it. The answer shows the photo with the selected area in red, plus coverage and bounds, so check it and adjust. \
+         AI selections take a few seconds; if nothing is found, no layer is added and the reason is given.
+         """,
          object(["photo_id": photo,
                  "kind": string("Mask kind.", ["linear", "radial", "subject", "sky", "background", "people"]),
                  "name": string("Layer name."),
                  "values": maskValues,
-                 "from": point("Linear: fully affected point [x, y] from the top-left."),
-                 "to": point("Linear: the point where the effect fades out."),
+                 "from": point("Linear: the fully affected point [x, y], as fractions from the top-left."),
+                 "to": point("Linear: where the effect has faded out."),
                  "center": point("Radial: center [x, y]."),
-                 "radius": ["description": "Radial: a fraction of the photo, or [width, height].",
-                            "anyOf": [["type": "number"], ["type": "array", "items": ["type": "number"], "minItems": 2, "maxItems": 2]]] as Schema,
+                 "radius": radius,
+                 "feather": number("Edge softness, 0…1.", minimum: 0, maximum: 1),
+                 "invert": boolean("Select everything except the shape."),
+                 "size": integer("Longest edge of the returned image.", minimum: 256, maximum: 2048),
                 ], required: ["kind"]), false),
+        ("list_mask_layers", "The open photo's mask layers: id, name, what they select, whether hidden or inverted, and their slider values.",
+         object(["photo_id": photo]), true),
+        ("preview_mask", "See where a mask layer applies: the photo with that layer's selection in red, with its coverage and bounds.",
+         object(["photo_id": photo, "layer_id": string("Layer id (or exact name) from list_mask_layers."),
+                 "size": integer("Longest edge in pixels.", minimum: 256, maximum: 2048)], required: ["layer_id"]), true),
+        ("update_mask_layer", "Change a mask layer: its sliders (only the ones you name change), name, hidden, invert, or move and resize a linear or radial shape. One undo step; the answer shows the new selection in red.",
+         object(["photo_id": photo, "layer_id": string("Layer id (or exact name) from list_mask_layers."),
+                 "values": maskValues, "name": string("New name."), "hidden": boolean("Hide the layer's effect without deleting it."),
+                 "invert": boolean("Select everything except the current area."),
+                 "from": point("Linear: new fully affected point."), "to": point("Linear: new fade-out point."),
+                 "center": point("Radial: new center."), "radius": radius,
+                 "feather": number("Edge softness, 0…1 (linear and radial).", minimum: 0, maximum: 1),
+                 "size": integer("Longest edge of the returned image.", minimum: 256, maximum: 2048)], required: ["layer_id"]), false),
+        ("delete_mask_layer", "Remove a mask layer and its effect (one undo step).",
+         object(["photo_id": photo, "layer_id": string("Layer id (or exact name) from list_mask_layers.")], required: ["layer_id"]), false),
         ("rate", "Set the star rating.", object(["photo_id": photo, "photo_ids": photos, "rating": integer("Stars.", minimum: 0, maximum: 5)], required: ["rating"]), false),
         ("flag", "Set the pick flag.", object(["photo_id": photo, "photo_ids": photos, "flag": string("Flag.", ["pick", "reject", "none"])], required: ["flag"]), false),
         ("label", "Set the color label.", object(["photo_id": photo, "photo_ids": photos,
@@ -157,7 +181,9 @@ enum Prompts {
             return """
             Edit the photo open in OpenStill so it looks like this: \(value("style")).
             First call get_photo and preview to see it. Then change a few sliders at a time with set_adjustments, checking with preview after each step. \
-            Use add_mask_layer for the sky or subject when only part of the photo needs it. Keep it natural unless the style asks otherwise, and explain what you changed.
+            When only part of the photo needs a change (sky, subject, a corner, the background), use add_mask_layer: look at the red area it returns, \
+            fix it with update_mask_layer (move, resize, invert) or delete_mask_layer, and tune its sliders. \
+            Finish with preview compare: true to check before against after. Keep it natural unless the style asks otherwise, and explain what you changed.
             """
         case "grade_folder":
             let style = value("style").isEmpty ? "a clean, consistent look" : value("style")
