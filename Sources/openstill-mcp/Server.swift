@@ -5,7 +5,7 @@ import Foundation
 /// OpenStill can also ask the AI app to answer something (MCP sampling), for example to design logos.
 final class Server {
     static let name = "openstill"
-    static let version = "1.1.0"
+    static let version = "1.2.0"
     static let protocolVersions = ["2025-06-18", "2025-03-26", "2024-11-05"]
 
     /// Writes one JSON-RPC message to the AI app.
@@ -62,7 +62,7 @@ final class Server {
             reply(id, ["protocolVersion": version,
                        "capabilities": ["tools": ["listChanged": false], "prompts": ["listChanged": false]],
                        "serverInfo": ["name": Self.name, "title": "OpenStill", "version": Self.version],
-                       "instructions": "Edits photos in OpenStill, a photo editor on this Mac. OpenStill saves every change as a normal undo step. Call status or list_photos first, and preview to look at a photo."])
+                       "instructions": Guidelines.instructions])
         case "notifications/initialized":
             // Connect early when OpenStill is already running, so it knows this AI app can answer its requests.
             let app = self.app, hello = self.hello

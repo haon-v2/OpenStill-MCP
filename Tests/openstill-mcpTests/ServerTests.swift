@@ -76,6 +76,28 @@ final class ServerTests: XCTestCase {
         XCTAssertTrue((content.last?["text"] as? String ?? "").contains("coverage"))
     }
 
+    func testFullEditingToolsAreOffered() {
+        let names = Set(Tools.all.map(\.name))
+        for tool in ["edit_reference", "get_edits", "edit", "run_command", "copy_edits", "list_presets", "list_skies"] { XCTAssertTrue(names.contains(tool), tool) }
+        XCTAssertEqual(Tools.all.first { $0.name == "edit" }!.schema["required"] as? [String], ["patch"])
+        XCTAssertEqual(Tools.all.first { $0.name == "copy_edits" }!.schema["required"] as? [String], ["to_photo_ids"])
+        XCTAssertEqual(Set(Tools.commands).count, Tools.commands.count)
+        XCTAssertTrue(Tools.all.first { $0.name == "get_edits" }!.readOnly)
+    }
+
+    func testPromptsCarryTheGuidelines() {
+        for prompt in Prompts.all {
+            let args = Dictionary(uniqueKeysWithValues: prompt.arguments.map { ($0.name, "x") })
+            let text = Prompts.text(prompt.name, args)
+            XCTAssertNotNil(text, prompt.name)
+            if !["find_luts", "cull_and_rate"].contains(prompt.name) {
+                XCTAssertTrue(text!.contains("ONE patch") || text!.contains("one edit call") || text!.contains("ONE edit call"), prompt.name)
+                XCTAssertTrue(text!.contains("professional photographer"), prompt.name)
+            }
+        }
+        XCTAssertTrue(Guidelines.instructions.contains("edit_reference") && Guidelines.instructions.contains("order a photographer"))
+    }
+
     func testToolCallsAreForwardedAndAnswered() {
         let (server, app, out) = make()
         app.answer = { message in ["type": "response", "id": message["id"]!, "result": ["exposure": 0.3]] }
