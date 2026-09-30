@@ -62,6 +62,20 @@ final class ServerTests: XCTestCase {
         XCTAssertNoThrow(try JSONSerialization.data(withJSONObject: tools))
     }
 
+    func testMaskLayersCanBeSeenChangedAndRemoved() {
+        let names = Set(Tools.all.map(\.name))
+        for tool in ["add_mask_layer", "list_mask_layers", "preview_mask", "update_mask_layer", "delete_mask_layer"] { XCTAssertTrue(names.contains(tool), tool) }
+        let update = Tools.all.first { $0.name == "update_mask_layer" }!
+        XCTAssertEqual(update.schema["required"] as? [String], ["layer_id"])
+        XCTAssertTrue(Tools.all.first { $0.name == "preview_mask" }!.readOnly)
+        let preview = (Tools.all.first { $0.name == "preview" }!.schema["properties"] as! [String: Any])
+        XCTAssertNotNil(preview["compare"])
+        // A mask view comes back as the image plus its facts.
+        let content = Server.content(["mime": "image/jpeg", "data": "AAAA", "selection": ["coverage": 0.4]])
+        XCTAssertEqual(content.first?["type"] as? String, "image")
+        XCTAssertTrue((content.last?["text"] as? String ?? "").contains("coverage"))
+    }
+
     func testToolCallsAreForwardedAndAnswered() {
         let (server, app, out) = make()
         app.answer = { message in ["type": "response", "id": message["id"]!, "result": ["exposure": 0.3]] }

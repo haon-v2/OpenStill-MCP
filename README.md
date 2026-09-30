@@ -23,10 +23,12 @@ It's optional and not installed with OpenStill. Install it from OpenStill when y
 | `list_photos` | Find photos by folder, text, rating, flag, label, keyword, camera, date, or whether they're edited. |
 | `get_photo` | A photo's details and its current slider values. |
 | `open_photo` | Open a photo in Develop. |
-| `preview` | Look at the photo with its edits (a JPEG, 1024 px by default, limited in Settings). |
+| `preview` | Look at the photo with its edits (a JPEG, 1024 px by default, limited in Settings); `compare: true` shows before and after side by side. |
 | `set_adjustments` | Change Develop sliders: exposure, contrast, highlights, shadows, whites, blacks, temperature, tint, vibrance, saturation, clarity, texture, dehaze, sharpness, noise reduction, vignette, straighten, LUT amount. |
 | `auto_tone`, `apply_preset`, `crop`, `reset`, `undo` | The same as the buttons in OpenStill. |
-| `add_mask_layer` | A masked adjustment: linear, radial, or an AI selection of the subject, sky, background or people, computed on your Mac. |
+| `add_mask_layer` | A masked adjustment: linear, radial, or an AI selection of the subject, sky, background or people, computed on your Mac. The answer shows the selected area in red with its coverage and bounds. |
+| `list_mask_layers`, `preview_mask` | See the photo's layers, and where each one applies. |
+| `update_mask_layer`, `delete_mask_layer` | Change a layer's sliders, name, visibility or inversion, move or resize a linear or radial one, or remove it. |
 | `rate`, `flag`, `label`, `add_keywords` | Library metadata for one or several photos. |
 | `export` | Export with your export settings. |
 | `list_luts`, `apply_lut` | Use the LUTs installed in OpenStill. |

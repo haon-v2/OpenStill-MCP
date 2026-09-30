@@ -5,7 +5,7 @@ import Foundation
 /// OpenStill can also ask the AI app to answer something (MCP sampling), for example to design logos.
 final class Server {
     static let name = "openstill"
-    static let version = "1.0.0"
+    static let version = "1.1.0"
     static let protocolVersions = ["2025-06-18", "2025-03-26", "2024-11-05"]
 
     /// Writes one JSON-RPC message to the AI app.
