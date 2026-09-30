@@ -38,7 +38,9 @@ It's optional and not installed with OpenStill. Install it from OpenStill when y
 | `list_luts`, `apply_lut` | Use the LUTs installed in OpenStill. |
 | `import_lut` | Add a free LUT the AI found on the web. OpenStill downloads it over https only, checks every `.cube` file, and refuses anything without a stated free license. The source and license are shown in the LUT browser under **Found by AI**. |
 
-It also offers three prompts: **Edit like…**, **Grade a folder** and **Find LUTs**.
+It also offers prompts: **Professional edit**, **Quick fix**, **Edit like…**, **Match a look**, **Portrait retouch**, **Landscape polish**, **Grade a folder**, **Cull and rate** and **Find LUTs**.
+
+Every AI app connected to OpenStill also receives working guidelines: edit like a professional photographer (look first, work in a photographer's order, protect highlights and skin tones, restraint, guide the eye, compare before and after) and work quickly (one grouped change per pass, small previews while working, copy settings across a series).
 
 ## How edits stay in sync
 

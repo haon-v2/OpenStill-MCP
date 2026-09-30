@@ -62,7 +62,7 @@ final class Server {
             reply(id, ["protocolVersion": version,
                        "capabilities": ["tools": ["listChanged": false], "prompts": ["listChanged": false]],
                        "serverInfo": ["name": Self.name, "title": "OpenStill", "version": Self.version],
-                       "instructions": "Edits photos in OpenStill, a photo editor on this Mac, with everything its Develop panel can do. Call status or list_photos first and preview to look. For anything beyond the basic sliders (curves, HSL, color grading, glow, grain, point color, detail, lens, transform, calibration, retouch, masks, lens blur…) call edit_reference once, read get_edits, and change it with edit (a JSON merge patch). Buttons (auto tone, Upright, AI noise removal, erase, skies, snapshots) are run_command; copy settings between photos with copy_edits. Every change is one undo step; check with preview compare: true."])
+                       "instructions": Guidelines.instructions])
         case "notifications/initialized":
             // Connect early when OpenStill is already running, so it knows this AI app can answer its requests.
             let app = self.app, hello = self.hello
